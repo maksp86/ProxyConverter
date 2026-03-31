@@ -37,37 +37,30 @@ jobs:
         with:
           submodules: recursive
 
-      # Настраиваем .NET 8
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
-      # Публикуем single-file self-contained
       - name: Publish ${{ matrix.rid }}
         run: |
-          cd ProxyConverter
-          dotnet publish -c Release -r ${{ matrix.rid }} -o publish/${{ matrix.rid }}
+          cd ProxyConverter && dotnet publish -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=false -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o ../publish/${{ matrix.rid }}
 
-      # Переименовываем в удобное имя
       - name: Rename binary
         shell: bash
         run: |
           mv "publish/${{ matrix.rid }}/ProxyConverter${{ matrix.extension }}" "${{ matrix.name }}"
 
-      # Делаем исполняемым для Linux
       - name: Make executable (Linux)
         if: runner.os == 'Linux'
         run: chmod +x "${{ matrix.name }}"
 
-      # Загружаем артефакт (для CI)
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}
 
-      # Прикрепляем к релизу (только когда создаётся релиз)
       - name: Upload to Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
@@ -76,7 +69,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Дополнительный шаг: создаём changelog (по желанию)
   release-info:
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
@@ -85,4 +77,4 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Show release info
-        run: echo "✅ Артефакты успешно прикреплены к релизу ${{ github.event.release.tag_name }}"
+        run: echo "Artifacts attached ${{ github.event.release.tag_name }}"

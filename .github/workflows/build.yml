@@ -13,9 +13,6 @@ jobs:
   build:
     name: Build ${{ matrix.rid }}
     runs-on: ${{ matrix.runner }}
-    defaults:
-      run:
-        working-directory: ProxyConverter
     strategy:
       matrix:
         include:
@@ -37,6 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       # Настраиваем .NET 8
       - name: Setup .NET
@@ -47,6 +46,7 @@ jobs:
       # Публикуем single-file self-contained
       - name: Publish ${{ matrix.rid }}
         run: |
+          cd ProxyConverter
           dotnet publish ProxyConverter.csproj \
             -c Release \
             -r ${{ matrix.rid }} \

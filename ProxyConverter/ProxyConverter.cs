@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 public static class ProxyConverter
 {
@@ -41,17 +42,15 @@ public static class ProxyConverter
 
 				if (profile != null)
 				{
-					profile.CoreType = ECoreType.Xray;
-
-					var context = new CoreConfigContext
+					CoreConfigContext context = new CoreConfigContext
 					{
 						Node = profile,
 						RunCoreType = ECoreType.Xray,
 						AppConfig = appConfig
 					};
 
-					var service = new CoreConfigV2rayService(context);
-					var result = service.GenerateClientConfigContent();
+					CoreConfigV2rayService service = new CoreConfigV2rayService(context);
+					RetResult result = service.GenerateClientConfigContent();
 
 					string configStr = result.Data.ToString();
 
@@ -87,9 +86,10 @@ public static class ProxyConverter
 	{
 		if (string.IsNullOrEmpty(strData)) return null;
 
-		var profileItem = FmtHandler.ResolveConfig(strData, out var msg);
+		ProfileItem profileItem = FmtHandler.ResolveConfig(strData, out var msg);
 		if (profileItem is null) return null;
 
+		profileItem.CoreType = ECoreType.Xray;
 		profileItem.Subid = null;
 		profileItem.IsSub = false;
 

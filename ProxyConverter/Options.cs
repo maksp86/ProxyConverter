@@ -22,6 +22,9 @@ public class Options
 	[Option("change-ports", Default = false, HelpText = "Enable sequential port changing (+1 for each successful config).")]
 	public bool ChangePorts { get; set; }
 
+	[Option("only-outbounds", Default = false, HelpText = "Print only outbound[0] config for each proxy link.")]
+	public bool OnlyOutbounds { get; set; }
+
 	[Value(0, MetaName = "urls", HelpText = "Positional arguments for proxy URLs (used if --input flags are omitted).")]
 	public IEnumerable<string>? Urls { get; set; }
 }

@@ -76,7 +76,10 @@ public static class ProxyConverter
 				configNode = null; // Ensure null is assigned on failure
 			}
 
-			outputObj[url] = configNode;
+			if (opts.OnlyOutbounds && configNode != null)
+				outputObj[url] = configNode["outbounds"][0].DeepClone();
+			else
+				outputObj[url] = configNode;
 		}
 
 		WriteOutput(outputObj, opts.Output);

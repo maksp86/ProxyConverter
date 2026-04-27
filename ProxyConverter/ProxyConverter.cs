@@ -1,12 +1,14 @@
 using ServiceLib.Enums;
 using ServiceLib.Handler;
 using ServiceLib.Handler.Fmt;
+using ServiceLib.Manager;
 using ServiceLib.Models;
 using ServiceLib.Services.CoreConfig;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
@@ -15,7 +17,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 public static class ProxyConverter
 {
 	/// <summary>
-	/// Main execution pipeline for transforming proxy URLs into Xray configs.
+	/// Main execution pipeline for transforming proxy URLs into Xray/SingBox configs.
 	/// </summary>
 	public static async Task RunAsync(Options opts)
 	{
@@ -28,6 +30,10 @@ public static class ProxyConverter
 			return;
 		}
 
+		ECoreType coreType = ECoreType.Xray;
+		if (opts.CoreType == CoreType.singbox)
+			coreType = ECoreType.sing_box;
+
 		JsonObject outputObj = new JsonObject();
 		int currentPort = opts.StartPort;
 
@@ -38,18 +44,36 @@ public static class ProxyConverter
 			try
 			{
 				Config appConfig = ConfigHandler.LoadConfig();
-				ProfileItem? profile = await AddBatchServersCommonStripped(appConfig, url);
+				ProfileItem? profile = await AddBatchServersCommonStripped(appConfig, coreType, url);
 
 				if (profile != null)
 				{
-					CoreConfigContext context = new CoreConfigContext
-					{
-						Node = profile,
-						RunCoreType = ECoreType.Xray,
-						AppConfig = appConfig
-					};
 
-					CoreConfigV2rayService service = new CoreConfigV2rayService(context);
+					dynamic service = null;
+
+					if (opts.CoreType == CoreType.xray)
+					{
+						CoreConfigContext context = new CoreConfigContext
+						{
+							Node = profile,
+							RunCoreType = coreType,
+							AppConfig = appConfig
+						};
+						service = new CoreConfigV2rayService(context);
+					}
+					else
+					{
+						CoreConfigContext context = new CoreConfigContext
+						{
+							Node = profile,
+							RunCoreType = coreType,
+							AppConfig = appConfig,
+							RoutingItem = new RoutingItem { DomainStrategy4Singbox = "" }
+						};
+						service = new CoreConfigSingboxService(context);
+						InitAppManagerMinimal(appConfig);
+					}
+
 					RetResult result = service.GenerateClientConfigContent();
 
 					string configStr = result.Data.ToString();
@@ -58,15 +82,20 @@ public static class ProxyConverter
 					configNode = JsonNode.Parse(configStr);
 
 					// Increment and assign ports if enabled
-					if (opts.ChangePorts && configNode is JsonObject configObj)
+					if (configNode is JsonObject configObj)
 					{
-						if (configObj["inbounds"] is JsonArray inbounds &&
-							inbounds.Count > 0 &&
-							inbounds[0] is JsonObject inbound)
+						if (opts.ChangePorts)
 						{
-							inbound["port"] = currentPort;
-							currentPort++;
+							if (configObj["inbounds"] is JsonArray inbounds &&
+								inbounds.Count > 0 &&
+								inbounds[0] is JsonObject inbound)
+							{
+								inbound["port"] = currentPort;
+								currentPort++;
+							}
 						}
+						if (opts.CoreType == CoreType.singbox)
+							configObj.Remove("experimental");
 					}
 				}
 			}
@@ -85,14 +114,22 @@ public static class ProxyConverter
 		WriteOutput(outputObj, opts.Output);
 	}
 
-	private static async Task<ProfileItem?> AddBatchServersCommonStripped(Config config, string strData)
+	private static void InitAppManagerMinimal(Config config)
+	{
+		var instance = AppManager.Instance;
+
+		var field = typeof(AppManager).GetField("_config", BindingFlags.NonPublic | BindingFlags.Instance);
+		field?.SetValue(instance, config);
+	}
+
+	private static async Task<ProfileItem?> AddBatchServersCommonStripped(Config config, ECoreType coreType, string strData)
 	{
 		if (string.IsNullOrEmpty(strData)) return null;
 
 		ProfileItem profileItem = FmtHandler.ResolveConfig(strData, out var msg);
 		if (profileItem is null) return null;
 
-		profileItem.CoreType = ECoreType.Xray;
+		profileItem.CoreType = coreType;
 		profileItem.Subid = null;
 		profileItem.IsSub = false;
 

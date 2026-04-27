@@ -1,22 +1,26 @@
 # ProxyConverter
 
-**Proxy links (share links) converter to Xray JSON configs**
+**Proxy links (share links) converter to Xray/sing-box JSON configs**
 
-A lightweight CLI tool that converts proxy subscription links (`ss://`, `vless://`, `vmess://`, `hysteria://`, `tuic://`, etc.) into ready-to-use Xray client configuration files (one outbound + standard inbounds/direct/block).
+A lightweight CLI tool that converts proxy subscription links (`ss://`, `vless://`, `vmess://`, `hysteria://`, `tuic://`, etc.) into ready-to-use Xray/sing-box client configuration files (one outbound + standard inbounds/direct/block).
 
 Designed for easy parsing and batch testing of large numbers of proxy links in Python scripts and automation pipelines.
 
 ## Features
 
 - Supports all protocols recognized by `v2rayN`
+- Select core type: `--core-type=xray` or `--core-type=singbox`
 - Multiple input methods:
   - Positional arguments (one or more links)
   - Line-by-line from file or stdin (`--input-lines`)
   - JSON array of strings (`--input-json`)
+- Multiple output methods:
+  - Full config
+  - Only outbound
 - Always outputs **compact minified JSON** in the format:
   ```json
   {
-    "link1": { ...full Xray config... },
+    "link1": { ...full Xray/sing-box config... },
     "link2": null, # if parsing fails
     ...
   }

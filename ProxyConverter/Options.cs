@@ -1,10 +1,17 @@
 using CommandLine;
 using System.Collections.Generic;
 
+public enum CoreType
+{
+	singbox,
+	xray
+}
+
 /// <summary>
 /// CLI Options definition for ProxyConverter.
 /// CommandLineParser uses these attributes to automatically generate the --help text.
 /// </summary>
+
 public class Options
 {
 	[Option("input-lines", HelpText = "Read links line-by-line from a file or stdin (-).")]
@@ -16,7 +23,7 @@ public class Options
 	[Option('o', "output", Default = "-", HelpText = "Output JSON to a file or stdout (-).")]
 	public string Output { get; set; } = "-";
 
-	[Option("start-port", Default = 10808, HelpText = "Starting port for Xray inbounds.")]
+	[Option("start-port", Default = 10808, HelpText = "Starting port for inbounds.")]
 	public int StartPort { get; set; }
 
 	[Option("change-ports", Default = false, HelpText = "Enable sequential port changing (+1 for each successful config).")]
@@ -24,6 +31,9 @@ public class Options
 
 	[Option("only-outbounds", Default = false, HelpText = "Print only outbound[0] config for each proxy link.")]
 	public bool OnlyOutbounds { get; set; }
+
+	[Option("core-type", Default = CoreType.xray, HelpText = "Select output config type: singbox or xray")]
+	public CoreType CoreType { get; set; }
 
 	[Value(0, MetaName = "urls", HelpText = "Positional arguments for proxy URLs (used if --input flags are omitted).")]
 	public IEnumerable<string>? Urls { get; set; }
